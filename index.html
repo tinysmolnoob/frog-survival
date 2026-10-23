@@ -5,411 +5,861 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
 <title>Frog Survival</title>
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #1d3b1a; font-family: "Trebuchet MS", sans-serif; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd3ff; font-family: "Segoe UI", "Trebuchet MS", sans-serif; user-select: none; -webkit-user-select: none; }
   canvas { display: block; touch-action: none; }
+  .hidden { display: none !important; }
+
   #overlay {
     position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    background: rgba(10, 30, 10, 0.75); color: #eaffd0; text-align: center; padding: 20px;
+    background: linear-gradient(180deg, rgba(255,90,40,0.35), rgba(120,20,60,0.55)); color: #fff; text-align: center; padding: 20px; z-index: 10;
   }
-  #overlay h1 { font-size: clamp(36px, 8vw, 72px); margin: 0 0 10px; color: #9be35a; text-shadow: 3px 3px 0 #1d3b1a; }
-  #overlay p { font-size: 18px; max-width: 520px; line-height: 1.5; margin: 6px 0; }
+  #overlay h1 { font-size: clamp(40px, 9vw, 84px); margin: 0 0 6px; font-weight: 900; letter-spacing: 1px;
+                color: #fff; text-shadow: 0 4px 0 #c2261b, 0 8px 18px rgba(0,0,0,0.35); }
+  #overlay .sub { font-size: 20px; font-weight: 700; margin-bottom: 14px; color: #ffe6a8; }
+  #overlay .card { background: rgba(255,255,255,0.92); color: #3a1d14; border-radius: 22px; padding: 14px 24px; max-width: 520px;
+                   box-shadow: 0 6px 0 rgba(0,0,0,0.15); line-height: 1.6; font-size: 16px; }
   #overlay button {
-    margin-top: 20px; font-size: 24px; padding: 12px 36px; border: none; border-radius: 30px;
-    background: #9be35a; color: #1d3b1a; font-weight: bold; cursor: pointer; box-shadow: 0 5px 0 #4d8a25;
+    margin-top: 22px; font-size: 26px; padding: 14px 48px; border: none; border-radius: 40px; font-weight: 900;
+    background: linear-gradient(180deg, #ff8a3d, #e8361f); color: #fff; cursor: pointer; box-shadow: 0 6px 0 #9c1d10;
   }
-  #overlay button:active { transform: translateY(3px); box-shadow: 0 2px 0 #4d8a25; }
-  .hidden { display: none !important; }
+  #overlay button:active { transform: translateY(4px); box-shadow: 0 2px 0 #9c1d10; }
+  #result { font-size: 20px; margin: 10px 0 0; }
+
+  #hud { position: fixed; top: 14px; left: 14px; z-index: 5; pointer-events: none; }
+  #hearts { font-size: 32px; color: #ff4a5e; text-shadow: 0 2px 0 #fff, 0 3px 6px rgba(0,0,0,0.3); letter-spacing: 2px; }
+  .bar { width: 190px; height: 16px; border-radius: 10px; background: rgba(0,0,0,0.35); border: 2px solid #fff; overflow: hidden; margin-top: 6px; position: relative; }
+  .bar > div { height: 100%; border-radius: 8px; }
+  .bar span { position: absolute; left: 8px; top: -1px; font-size: 11px; font-weight: 800; color: #fff; text-shadow: 0 1px 2px #000; }
+  #belly { background: linear-gradient(90deg, #ffb42e, #ffe14a); }
+  #hiddenTag { margin-top: 8px; display: inline-block; background: #2f8f3a; color: #fff; font-weight: 800; padding: 3px 12px; border-radius: 12px; font-size: 14px; border: 2px solid #fff; }
+
+  #score { position: fixed; top: 176px; right: 18px; z-index: 5; text-align: right; color: #fff; font-weight: 900; pointer-events: none;
+           text-shadow: 0 2px 0 #c2261b, 0 3px 8px rgba(0,0,0,0.4); }
+  #score .big { font-size: 34px; }
+  #score .small { font-size: 15px; }
+
+  #minimap { position: fixed; top: 14px; right: 14px; width: 150px; height: 150px; border-radius: 50%; z-index: 5;
+             border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.3); pointer-events: none; }
+
+  #toast { position: fixed; top: 22%; left: 50%; transform: translateX(-50%); z-index: 6; pointer-events: none;
+           background: #fff; color: #c2261b; font-weight: 900; font-size: 22px; padding: 10px 26px; border-radius: 30px;
+           box-shadow: 0 5px 0 #c2261b; opacity: 0; transition: opacity 0.25s; white-space: nowrap; }
+
+  #help { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none;
+          color: #fff; font-size: 13px; font-weight: 700; text-shadow: 0 1px 3px #000; opacity: 0.85; white-space: nowrap; }
+
+  #joy { position: fixed; left: 0; bottom: 0; width: 50%; height: 55%; z-index: 4; touch-action: none; }
+  #joyBase { position: fixed; width: 110px; height: 110px; border-radius: 50%; background: rgba(255,255,255,0.25); border: 3px solid rgba(255,255,255,0.7); z-index: 4; pointer-events: none; }
+  #joyKnob { position: absolute; left: 30px; top: 30px; width: 50px; height: 50px; border-radius: 50%; background: rgba(255,255,255,0.85); }
+  #jumpBtn { position: fixed; right: 26px; bottom: 34px; width: 84px; height: 84px; border-radius: 50%; z-index: 5; touch-action: none;
+             background: linear-gradient(180deg, #ff8a3d, #e8361f); border: 4px solid #fff; color: #fff; font-weight: 900; font-size: 18px;
+             display: flex; align-items: center; justify-content: center; box-shadow: 0 5px 0 #9c1d10; }
 </style>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
 </head>
 <body>
-<canvas id="game"></canvas>
 <div id="overlay">
-  <h1>🐸 Frog Survival</h1>
-  <p>You are the frog. Survive the snakes, herons and hawks for as long as you can!</p>
-  <p><b>Move:</b> WASD / arrow keys (or drag on touch)<br>
-     <b>Leap:</b> Space (or double-tap) &mdash; you can't be caught mid-air<br>
-     Eat 🪰 flies to stay fed. If your belly empties, you lose a heart.</p>
-  <p id="result"></p>
-  <button id="start">Play</button>
+  <h1>FROG SURVIVAL</h1>
+  <div class="sub">An open-world adventure where you are the frog</div>
+  <div class="card">
+    Explore the wild. Snakes, herons and hawks roam the land &mdash; if one spots you, a <b>!</b> pops up and it comes for you.<br>
+    <b>Move:</b> WASD / arrows &nbsp;·&nbsp; <b>Jump:</b> Space &nbsp;·&nbsp; <b>Camera:</b> drag mouse, scroll to zoom<br>
+    Snakes and herons can't catch you mid-jump. Hide in <b>tall grass</b> so they can't see you.<br>
+    Hawks mark a <b style="color:#e8361f">red circle</b> before diving &mdash; get out of it!<br>
+    Eat glowing 🪰 flies to keep your belly full.
+  </div>
+  <div id="result"></div>
+  <button id="start">PLAY</button>
 </div>
-<script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-const overlay = document.getElementById('overlay');
-const resultEl = document.getElementById('result');
-const startBtn = document.getElementById('start');
 
-let W, H;
-function resize() { W = canvas.width = innerWidth; H = canvas.height = innerHeight; }
+<div id="hud" class="hidden">
+  <div id="hearts"></div>
+  <div class="bar"><div id="belly"></div><span>BELLY</span></div>
+  <div id="hiddenTag" class="hidden">🌿 HIDDEN</div>
+</div>
+<canvas id="minimap" class="hidden" width="300" height="300"></canvas>
+<div id="score" class="hidden"><div class="big" id="scoreVal">0</div><div class="small" id="timeVal"></div></div>
+<div id="toast"></div>
+<div id="help" class="hidden">WASD move · Space jump · drag to look · scroll to zoom</div>
+<div id="joy" class="hidden"></div>
+<div id="joyBase" class="hidden"><div id="joyKnob"></div></div>
+<div id="jumpBtn" class="hidden">JUMP</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ---------- Setup ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const SKY = 0x8fd3ff;
+scene.background = new THREE.Color(SKY);
+scene.fog = new THREE.Fog(SKY, 70, 230);
+
+const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 600);
+function resize() {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+}
 addEventListener('resize', resize);
 resize();
 
+scene.add(new THREE.HemisphereLight(0xdff4ff, 0x5a7a3a, 1.3));
+const sun = new THREE.DirectionalLight(0xfff2d6, 2.2);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -45, right: 45, top: 45, bottom: -45, near: 1, far: 160 });
+sun.shadow.bias = -0.0005;
+scene.add(sun, sun.target);
+
+// Cel-shading ramp
+const ramp = new THREE.DataTexture(new Uint8Array([90, 170, 255]), 3, 1, THREE.RedFormat);
+ramp.minFilter = ramp.magFilter = THREE.NearestFilter;
+ramp.needsUpdate = true;
+const toon = (color, extra = {}) => new THREE.MeshToonMaterial({ color, gradientMap: ramp, ...extra });
+
+function mesh(geo, mat, x = 0, y = 0, z = 0, parent) {
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z);
+  m.castShadow = true;
+  if (parent) parent.add(m);
+  return m;
+}
+
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+function lerpAngle(a, b, t) {
+  const d = ((b - a + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+  return a + d * t;
+}
+
+// ---------- World ----------
+const SIZE = 420, WATER = -2.2, BOUND = 170;
+const LAKE = { x: 45, z: -35 };
+
+function height(x, z) {
+  let h = 2.6 * Math.sin(x * 0.03) * Math.cos(z * 0.035) + 1.2 * Math.sin(x * 0.08 + 1) * Math.sin(z * 0.07);
+  h += 0.4 * Math.sin(x * 0.21 + z * 0.17);
+  const r = Math.hypot(x, z);
+  h += Math.max(0, r - 125) ** 2 * 0.006;
+  h -= 7 * Math.exp(-((x - LAKE.x) ** 2 + (z - LAKE.z) ** 2) / 700);
+  h += 1.5 * Math.exp(-(x * x + z * z) / 200); // gentle hill where you start
+  return h;
+}
+const groundAt = (x, z) => Math.max(height(x, z), WATER - 0.35);
+
+{
+  const geo = new THREE.PlaneGeometry(SIZE, SIZE, 180, 180);
+  geo.rotateX(-Math.PI / 2);
+  const pos = geo.attributes.position, colors = [], c = new THREE.Color();
+  const sand = new THREE.Color(0xeedd9a), g1 = new THREE.Color(0x86d455), g2 = new THREE.Color(0x5fb043), hill = new THREE.Color(0x76a64e);
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i), z = pos.getZ(i), h = height(x, z);
+    pos.setY(i, h);
+    if (h < WATER + 0.5) c.copy(sand);
+    else if (h > 8) c.copy(hill);
+    else c.copy(g1).lerp(g2, (Math.sin(x * 0.11) * Math.cos(z * 0.13) + 1) / 2);
+    colors.push(c.r, c.g, c.b);
+  }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+  geo.computeVertexNormals();
+  const ground = new THREE.Mesh(geo, toon(0xffffff, { vertexColors: true }));
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(SIZE, SIZE).rotateX(-Math.PI / 2),
+    new THREE.MeshPhongMaterial({ color: 0x3fb0e8, transparent: true, opacity: 0.78, shininess: 90 }));
+  water.position.y = WATER;
+  water.receiveShadow = true;
+  scene.add(water);
+}
+
+function randomLand(minH = WATER + 0.8, maxH = 99, cx = 0, cz = 0, R = 150, avoidCenter = 0) {
+  for (let i = 0; i < 200; i++) {
+    const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * R;
+    const x = cx + Math.cos(a) * r, z = cz + Math.sin(a) * r;
+    if (Math.hypot(x, z) > BOUND - 5 || Math.hypot(x, z) < avoidCenter) continue;
+    const h = height(x, z);
+    if (h >= minH && h <= maxH) return { x, z };
+  }
+  return { x: cx, z: cz };
+}
+
+// Trees & rocks (also used for collisions)
+const obstacles = [];
+{
+  const trunkGeo = new THREE.CylinderGeometry(0.3, 0.45, 3, 7);
+  const leafGeo = new THREE.IcosahedronGeometry(2.2, 0);
+  const trunkMat = toon(0x8a5a33);
+  const leafMats = [toon(0x3f9e3a), toon(0x2f8a3a), toon(0x58b345), toon(0xe9734f)];
+  for (let i = 0; i < 160; i++) {
+    const p = randomLand(WATER + 0.9, 99, 0, 0, 160, 10);
+    const s = rand(0.8, 1.5), y = height(p.x, p.z);
+    const tree = new THREE.Group();
+    mesh(trunkGeo, trunkMat, 0, 1.5, 0, tree);
+    const lm = leafMats[Math.random() < 0.08 ? 3 : Math.floor(Math.random() * 3)];
+    mesh(leafGeo, lm, 0, 4, 0, tree).rotation.y = Math.random() * 6;
+    mesh(leafGeo, lm, 0, 5.6, 0, tree).scale.setScalar(0.65);
+    tree.position.set(p.x, y - 0.2, p.z);
+    tree.scale.setScalar(s);
+    scene.add(tree);
+    obstacles.push({ x: p.x, z: p.z, r: 0.55 * s });
+  }
+  const rockGeo = new THREE.DodecahedronGeometry(1, 0), rockMat = toon(0x9a9aa3);
+  for (let i = 0; i < 60; i++) {
+    const p = randomLand(WATER - 0.5, 99, 0, 0, 160, 8);
+    const s = rand(0.5, 1.8);
+    const r = mesh(rockGeo, rockMat, p.x, height(p.x, p.z) + s * 0.3, p.z);
+    r.scale.set(s, s * 0.7, s);
+    r.rotation.set(Math.random(), Math.random() * 6, 0);
+    r.receiveShadow = true;
+    scene.add(r);
+    obstacles.push({ x: p.x, z: p.z, r: 0.85 * s });
+  }
+}
+
+// Flowers
+{
+  const N = 700, geo = new THREE.SphereGeometry(0.16, 6, 4);
+  const inst = new THREE.InstancedMesh(geo, toon(0xffffff), N);
+  const palette = [0xff5a7a, 0xffd93d, 0xffffff, 0xb57bff, 0xff8a3d].map(c => new THREE.Color(c));
+  const m = new THREE.Matrix4();
+  for (let i = 0; i < N; i++) {
+    const p = randomLand(WATER + 0.7);
+    m.makeTranslation(p.x, height(p.x, p.z) + 0.15, p.z);
+    inst.setMatrixAt(i, m);
+    inst.setColorAt(i, palette[i % palette.length]);
+  }
+  scene.add(inst);
+}
+
+// Tall grass patches (hiding spots)
+const grassPatches = [];
+{
+  const PER = 90;
+  const patches = 30;
+  const geo = new THREE.ConeGeometry(0.14, 1.5, 4).translate(0, 0.75, 0);
+  const inst = new THREE.InstancedMesh(geo, toon(0xffffff), patches * PER);
+  const base = new THREE.Color(0x3f9a2e), alt = new THREE.Color(0x2c7a24), c = new THREE.Color();
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), s = new THREE.Vector3(), v = new THREE.Vector3();
+  let k = 0;
+  for (let i = 0; i < patches; i++) {
+    const p = i === 0 ? { x: 8, z: 6 } : randomLand(WATER + 0.8, 99, 0, 0, 150, 12);
+    const R = rand(4.5, 8);
+    grassPatches.push({ x: p.x, z: p.z, r: R });
+    for (let j = 0; j < PER; j++) {
+      const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * R;
+      const x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r;
+      e.set(rand(-0.25, 0.25), Math.random() * 6, rand(-0.25, 0.25));
+      q.setFromEuler(e);
+      const sc = rand(0.8, 1.4);
+      m.compose(v.set(x, height(x, z) - 0.05, z), q, s.set(sc, sc, sc));
+      inst.setMatrixAt(k, m);
+      inst.setColorAt(k, c.copy(base).lerp(alt, Math.random()));
+      k++;
+    }
+  }
+  inst.castShadow = true;
+  scene.add(inst);
+}
+
+// Clouds
+const clouds = [];
+{
+  const geo = new THREE.SphereGeometry(1, 10, 8), mat = toon(0xffffff, { fog: false });
+  for (let i = 0; i < 22; i++) {
+    const g = new THREE.Group();
+    for (let j = 0; j < 4; j++) {
+      const s = rand(4, 8);
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(j * 5 - 7, rand(-1, 1), rand(-2, 2));
+      m.scale.set(s, s * 0.6, s);
+      g.add(m);
+    }
+    g.position.set(rand(-200, 200), rand(55, 80), rand(-200, 200));
+    scene.add(g);
+    clouds.push(g);
+  }
+}
+
+// Shared textures
+function canvasTex(size, draw) {
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  draw(c.getContext('2d'), size);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+const glowTex = canvasTex(64, (g, s) => {
+  const gr = g.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  gr.addColorStop(0, 'rgba(255,255,200,1)'); gr.addColorStop(0.3, 'rgba(255,240,120,0.6)'); gr.addColorStop(1, 'rgba(255,240,120,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, s, s);
+});
+const alertTex = canvasTex(128, (g, s) => {
+  g.fillStyle = '#ffd93d'; g.strokeStyle = '#fff'; g.lineWidth = 10;
+  g.beginPath(); g.arc(s / 2, s / 2, s / 2 - 8, 0, Math.PI * 2); g.fill(); g.stroke();
+  g.fillStyle = '#e8361f'; g.font = 'bold 90px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('!', s / 2, s / 2 + 4);
+});
+function makeAlert(parent, y) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: alertTex, depthTest: false }));
+  sp.scale.setScalar(1.4);
+  sp.position.y = y;
+  sp.visible = false;
+  sp.renderOrder = 10;
+  parent.add(sp);
+  return sp;
+}
+
+// ---------- Frog ----------
+const frogMesh = new THREE.Group();
+{
+  const green = toon(0x5cc93a), light = toon(0xc4f08a), white = toon(0xffffff), black = toon(0x111111), pink = toon(0xff9aa8);
+  const sph = new THREE.SphereGeometry(1, 16, 12);
+  mesh(sph, green, 0, 0.5, 0, frogMesh).scale.set(0.62, 0.45, 0.72);
+  mesh(sph, light, 0, 0.4, 0.22, frogMesh).scale.set(0.48, 0.32, 0.5);
+  for (const s of [-1, 1]) {
+    mesh(sph, green, s * 0.28, 0.85, 0.32, frogMesh).scale.setScalar(0.22);
+    mesh(sph, white, s * 0.3, 0.9, 0.42, frogMesh).scale.setScalar(0.16);
+    mesh(sph, black, s * 0.31, 0.92, 0.55, frogMesh).scale.setScalar(0.08);
+    mesh(sph, pink, s * 0.38, 0.55, 0.5, frogMesh).scale.set(0.1, 0.06, 0.06);
+    mesh(sph, green, s * 0.55, 0.28, -0.25, frogMesh).scale.set(0.25, 0.2, 0.45);
+    mesh(sph, light, s * 0.62, 0.08, 0.15, frogMesh).scale.set(0.18, 0.06, 0.25);
+    mesh(sph, green, s * 0.38, 0.22, 0.48, frogMesh).scale.set(0.11, 0.22, 0.11);
+  }
+  scene.add(frogMesh);
+}
+
+// ---------- Enemies ----------
+const sph = new THREE.SphereGeometry(1, 12, 10);
+const enemies = [];
+
+function makeSnake() {
+  const p = randomLand(WATER + 0.3, 99, 0, 0, 150, 35);
+  const head = new THREE.Group();
+  const yellow = toon(0xd8b02a), brown = toon(0x7a5c12);
+  mesh(sph, yellow, 0, 0, 0.1, head).scale.set(0.38, 0.26, 0.5);
+  for (const s of [-1, 1]) mesh(sph, toon(0x111111), s * 0.2, 0.14, 0.32, head).scale.setScalar(0.07);
+  const tongue = mesh(new THREE.BoxGeometry(0.05, 0.02, 0.5), toon(0xe8361f), 0, -0.02, 0.75, head);
+  scene.add(head);
+  const segs = [];
+  for (let i = 0; i < 16; i++) {
+    const r = 0.32 - i * 0.014;
+    const s = mesh(sph, i % 3 === 2 ? brown : yellow, 0, 0, 0);
+    s.scale.setScalar(r);
+    scene.add(s);
+    segs.push(s);
+  }
+  return { type: 'snake', name: 'snake', head, segs, tongue, x: p.x, z: p.z, dir: 0, state: 'wander', t: 0,
+           tx: p.x, tz: p.z, trail: Array.from({ length: 40 }, () => ({ x: p.x, z: p.z })), alert: makeAlert(head, 1.6), sight: 18,
+           meshes: [head, ...segs] };
+}
+
+function makeHeron() {
+  const p = randomLand(WATER - 0.8, WATER + 1.5, LAKE.x, LAKE.z, 60, 0);
+  const g = new THREE.Group(), upper = new THREE.Group(), neck = new THREE.Group();
+  const grey = toon(0xd5dde3), dark = toon(0x7f8d99), orange = toon(0xf2a33a);
+  for (const s of [-1, 1]) {
+    const leg = mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.4, 5), orange, s * 0.25, 1.2, 0, g);
+    leg.userData.side = s;
+  }
+  upper.position.y = 2.3;
+  g.add(upper);
+  mesh(sph, grey, 0, 0.3, 0, upper).scale.set(0.7, 0.65, 1.2);
+  mesh(sph, dark, 0, 0.45, -0.3, upper).scale.set(0.72, 0.4, 0.9);
+  mesh(new THREE.ConeGeometry(0.3, 0.8, 5).rotateX(-Math.PI / 2), dark, 0, 0.3, -1.4, upper);
+  neck.position.set(0, 0.6, 0.8);
+  upper.add(neck);
+  mesh(new THREE.CylinderGeometry(0.11, 0.15, 1.6, 6), grey, 0, 0.8, 0, neck);
+  mesh(sph, grey, 0, 1.65, 0.1, neck).scale.setScalar(0.3);
+  mesh(new THREE.ConeGeometry(0.09, 1.1, 6).rotateX(Math.PI / 2), orange, 0, 1.6, 0.85, neck);
+  for (const s of [-1, 1]) mesh(sph, toon(0x111111), s * 0.2, 1.72, 0.25, neck).scale.setScalar(0.06);
+  scene.add(g);
+  return { type: 'heron', name: 'heron', g, upper, neck, x: p.x, z: p.z, homeX: p.x, homeZ: p.z, dir: Math.random() * 6,
+           state: 'wander', t: 0, tx: p.x, tz: p.z, alert: makeAlert(g, 5.4), sight: 22, walk: 0, meshes: [g] };
+}
+
+function makeHawk() {
+  const p = randomLand(-99, 99, 0, 0, 140, 40);
+  const g = new THREE.Group();
+  const brown = toon(0x7a4a26), tan = toon(0xb07a45), yellow = toon(0xf2c23a);
+  mesh(sph, brown, 0, 0, 0, g).scale.set(0.55, 0.45, 1.3);
+  mesh(sph, tan, 0, 0.1, 1.1, g).scale.setScalar(0.4);
+  mesh(new THREE.ConeGeometry(0.12, 0.4, 5).rotateX(Math.PI / 2), yellow, 0, 0, 1.55, g);
+  mesh(new THREE.BoxGeometry(0.9, 0.08, 0.9), brown, 0, 0, -1.4, g);
+  const wings = [];
+  for (const s of [-1, 1]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(s * 0.4, 0.1, 0);
+    mesh(new THREE.BoxGeometry(3, 0.1, 1.2), tan, s * 1.5, 0, 0, pivot);
+    g.add(pivot);
+    wings.push({ pivot, s });
+  }
+  g.scale.setScalar(1.4);
+  scene.add(g);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(2.4, 3, 40).rotateX(-Math.PI / 2),
+    new THREE.MeshBasicMaterial({ color: 0xff2a2a, transparent: true, opacity: 0.85, depthWrite: false }));
+  ring.visible = false;
+  scene.add(ring);
+  return { type: 'hawk', name: 'hawk', g, wings, ring, cx: p.x, cz: p.z, a: Math.random() * 6, x: p.x, z: p.z, y: 30,
+           state: 'circle', t: 0, cd: 4, sight: 32, meshes: [g, ring] };
+}
+
+const makers = { snake: makeSnake, heron: makeHeron, hawk: makeHawk };
+function addEnemy(type) { enemies.push(makers[type]()); }
+function clearEnemies() {
+  for (const e of enemies) for (const m of e.meshes) scene.remove(m);
+  enemies.length = 0;
+}
+
+// ---------- Flies ----------
+const flies = [];
+{
+  const body = new THREE.SphereGeometry(0.13, 6, 4), bodyMat = new THREE.MeshBasicMaterial({ color: 0x222222 });
+  const glowMat = new THREE.SpriteMaterial({ map: glowTex, color: 0xfff28a, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true });
+  for (let i = 0; i < 35; i++) {
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(body, bodyMat));
+    const s = new THREE.Sprite(glowMat);
+    s.scale.setScalar(1.3);
+    g.add(s);
+    scene.add(g);
+    flies.push({ g, ax: 0, az: 0, base: 0, t: Math.random() * 10 });
+  }
+}
+function placeFly(f, near) {
+  const p = near ? randomLand(WATER - 1, 99, frog.x, frog.z, 70, 0) : randomLand(WATER - 1, 99, 0, 0, 150, 0);
+  f.ax = p.x; f.az = p.z;
+  f.base = groundAt(p.x, p.z) + rand(0.9, 2.2);
+}
+
+// ---------- Input ----------
 const keys = {};
+let jumpQueued = false;
 addEventListener('keydown', e => {
   keys[e.code] = true;
-  if (e.code === 'Space') { e.preventDefault(); if (running) leap(); }
+  if (e.code === 'Space') { e.preventDefault(); jumpQueued = true; }
+  if (e.code.startsWith('Arrow')) e.preventDefault();
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
 
-// Touch: drag to steer, double-tap to leap
-let touchTarget = null, lastTap = 0;
-canvas.addEventListener('pointerdown', e => {
-  touchTarget = { x: e.clientX, y: e.clientY };
-  const now = performance.now();
-  if (now - lastTap < 300 && running) leap();
-  lastTap = now;
+let yaw = 0, pitch = 0.42, camDist = 10;
+let dragId = null, lastX = 0, lastY = 0;
+renderer.domElement.addEventListener('pointerdown', e => { dragId = e.pointerId; lastX = e.clientX; lastY = e.clientY; });
+addEventListener('pointermove', e => {
+  if (e.pointerId !== dragId) return;
+  yaw -= (e.clientX - lastX) * 0.006;
+  pitch = clamp(pitch + (e.clientY - lastY) * 0.004, 0.08, 1.25);
+  lastX = e.clientX; lastY = e.clientY;
 });
-canvas.addEventListener('pointermove', e => { if (touchTarget) touchTarget = { x: e.clientX, y: e.clientY }; });
-addEventListener('pointerup', () => { touchTarget = null; });
+addEventListener('pointerup', e => { if (e.pointerId === dragId) dragId = null; });
+addEventListener('wheel', e => { camDist = clamp(camDist + e.deltaY * 0.01, 5, 20); }, { passive: true });
 
-let frog, flies, enemies, particles, lilies, time, score, best, running, spawnTimer, flyTimer, shake;
-best = +localStorage.getItem('frogBest') || 0;
+// Touch joystick
+const isTouch = matchMedia('(pointer: coarse)').matches;
+const joy = document.getElementById('joy'), joyBase = document.getElementById('joyBase'), joyKnob = document.getElementById('joyKnob');
+let joyId = null, joyOX = 0, joyOY = 0, joyX = 0, joyY = 0;
+joy.addEventListener('pointerdown', e => {
+  joyId = e.pointerId; joyOX = e.clientX; joyOY = e.clientY;
+  joyBase.style.left = (joyOX - 55) + 'px'; joyBase.style.top = (joyOY - 55) + 'px';
+  joyBase.classList.remove('hidden');
+});
+addEventListener('pointermove', e => {
+  if (e.pointerId !== joyId) return;
+  let dx = e.clientX - joyOX, dy = e.clientY - joyOY;
+  const d = Math.hypot(dx, dy), max = 45;
+  if (d > max) { dx = dx / d * max; dy = dy / d * max; }
+  joyX = dx / max; joyY = dy / max;
+  joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+});
+addEventListener('pointerup', e => {
+  if (e.pointerId !== joyId) return;
+  joyId = null; joyX = joyY = 0;
+  joyKnob.style.transform = '';
+  joyBase.classList.add('hidden');
+});
+document.getElementById('jumpBtn').addEventListener('pointerdown', e => { e.stopPropagation(); jumpQueued = true; });
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+const ui = { hearts: $('hearts'), belly: $('belly'), hidden: $('hiddenTag'), score: $('scoreVal'), time: $('timeVal'), toast: $('toast') };
+const mini = $('minimap').getContext('2d');
+let toastTimer = 0;
+function toast(msg) { ui.toast.textContent = msg; ui.toast.style.opacity = 1; toastTimer = 2; }
+
+// ---------- Game state ----------
+const frog = { x: 0, z: 0, y: 0, vy: 0, dir: 0, kx: 0, kz: 0, grounded: true, hop: 0, hearts: 3, belly: 100, invuln: 0, hidden: false, swimming: false };
+let running = false, time = 0, score = 0, fliesEaten = 0, spawnClock = 0;
+let best = +localStorage.getItem('frog3dBest') || 0;
 
 function reset() {
-  frog = { x: W / 2, y: H / 2, r: 18, vx: 0, vy: 0, dir: 0, hearts: 3, belly: 100,
-           air: 0, leapCd: 0, hurt: 0, hop: 0, faceX: 1, faceY: 0 };
-  flies = []; enemies = []; particles = [];
-  lilies = Array.from({ length: Math.round(W * H / 45000) }, () => ({
-    x: Math.random() * W, y: Math.random() * H, r: 25 + Math.random() * 25, a: Math.random() * 6.28 }));
-  time = 0; score = 0; spawnTimer = 2; flyTimer = 0; shake = 0;
-  for (let i = 0; i < 5; i++) spawnFly();
+  Object.assign(frog, { x: 0, z: 0, y: groundAt(0, 0), vy: 0, dir: Math.PI, kx: 0, kz: 0, grounded: true, hearts: 3, belly: 100, invuln: 0 });
+  yaw = 0;
+  time = 0; score = 0; fliesEaten = 0; spawnClock = 0;
+  clearEnemies();
+  for (let i = 0; i < 9; i++) addEnemy('snake');
+  for (let i = 0; i < 5; i++) addEnemy('heron');
+  for (let i = 0; i < 2; i++) addEnemy('hawk');
+  flies.forEach((f, i) => placeFly(f, i < 15));
 }
 
-function leap() {
-  if (frog.leapCd > 0 || frog.air > 0) return;
-  frog.air = 0.55; frog.leapCd = 1.4;
-  const len = Math.hypot(frog.faceX, frog.faceY) || 1;
-  frog.vx = frog.faceX / len * 520; frog.vy = frog.faceY / len * 520;
-  puff(frog.x, frog.y, '#cfe8a8', 8);
-}
-
-function spawnFly() {
-  flies.push({ x: 40 + Math.random() * (W - 80), y: 40 + Math.random() * (H - 80), t: Math.random() * 10 });
-}
-
-function edgePoint() {
-  const s = Math.floor(Math.random() * 4);
-  if (s === 0) return { x: -40, y: Math.random() * H };
-  if (s === 1) return { x: W + 40, y: Math.random() * H };
-  if (s === 2) return { x: Math.random() * W, y: -40 };
-  return { x: Math.random() * W, y: H + 40 };
-}
-
-function spawnEnemy() {
-  const roll = Math.random();
-  const lvl = Math.min(time / 60, 2);
-  if (roll < 0.45) {
-    const p = edgePoint();
-    enemies.push({ type: 'snake', x: p.x, y: p.y, speed: 90 + lvl * 50 + Math.random() * 30,
-                   trail: [], life: 14 + Math.random() * 6, a: 0 });
-  } else if (roll < 0.8) {
-    // Heron: shadow aims near the frog, then strikes
-    enemies.push({ type: 'heron', x: frog.x + (Math.random() - 0.5) * 80, y: frog.y + (Math.random() - 0.5) * 80,
-                   t: 0, warn: Math.max(0.8, 1.6 - lvl * 0.35), struck: false });
+function hurt(by) {
+  if (frog.invuln > 0) return;
+  frog.hearts--;
+  frog.invuln = 2;
+  if (by) {
+    const dx = frog.x - by.x, dz = frog.z - by.z, d = Math.hypot(dx, dz) || 1;
+    frog.kx = dx / d * 14; frog.kz = dz / d * 14;
+    frog.vy = 7; frog.grounded = false;
+    toast(`Ouch! The ${by.name} got you!`);
   } else {
-    // Hawk: dives across the screen in a line after a warning
-    const p = edgePoint();
-    const ang = Math.atan2(frog.y - p.y, frog.x - p.x);
-    enemies.push({ type: 'hawk', x: p.x, y: p.y, ang, t: 0, warn: 1.1, speed: 700 + lvl * 150 });
+    toast('Your belly is empty!');
   }
-}
-
-function puff(x, y, color, n) {
-  for (let i = 0; i < n; i++) {
-    const a = Math.random() * 6.28, s = 40 + Math.random() * 120;
-    particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.5, color });
-  }
-}
-
-function hurt() {
-  if (frog.hurt > 0 || frog.air > 0) return;
-  frog.hearts--; frog.hurt = 1.5; shake = 0.4;
-  puff(frog.x, frog.y, '#ff6b6b', 16);
   if (frog.hearts <= 0) gameOver();
 }
 
 function gameOver() {
   running = false;
   const final = Math.floor(score);
-  if (final > best) { best = final; localStorage.setItem('frogBest', best); }
-  resultEl.innerHTML = `You survived <b>${time.toFixed(1)}s</b> &mdash; score <b>${final}</b><br>Best: ${best}`;
-  startBtn.textContent = 'Play again';
-  overlay.classList.remove('hidden');
+  if (final > best) { best = final; localStorage.setItem('frog3dBest', best); }
+  $('result').innerHTML = `You survived <b>${time.toFixed(1)}s</b> and ate <b>${fliesEaten}</b> flies<br>Score <b>${final}</b> &nbsp;·&nbsp; Best ${best}`;
+  $('start').textContent = 'PLAY AGAIN';
+  $('overlay').classList.remove('hidden');
+  for (const id of ['hud', 'minimap', 'score', 'help', 'joy', 'jumpBtn']) $(id).classList.add('hidden');
 }
 
-function update(dt) {
-  time += dt; score += dt * 10;
-  frog.leapCd = Math.max(0, frog.leapCd - dt);
-  frog.hurt = Math.max(0, frog.hurt - dt);
-  shake = Math.max(0, shake - dt);
+$('start').onclick = () => {
+  reset();
+  running = true;
+  $('overlay').classList.add('hidden');
+  for (const id of ['hud', 'minimap', 'score']) $(id).classList.remove('hidden');
+  if (isTouch) { $('joy').classList.remove('hidden'); $('jumpBtn').classList.remove('hidden'); }
+  else $('help').classList.remove('hidden');
+};
 
-  // Movement
-  let mx = 0, my = 0;
-  if (keys.KeyA || keys.ArrowLeft) mx--;
-  if (keys.KeyD || keys.ArrowRight) mx++;
-  if (keys.KeyW || keys.ArrowUp) my--;
-  if (keys.KeyS || keys.ArrowDown) my++;
-  if (touchTarget) {
-    const dx = touchTarget.x - frog.x, dy = touchTarget.y - frog.y, d = Math.hypot(dx, dy);
-    if (d > 15) { mx = dx / d; my = dy / d; }
+// ---------- Update ----------
+function pushOut(o, radius) {
+  for (const ob of obstacles) {
+    const dx = o.x - ob.x, dz = o.z - ob.z, d = Math.hypot(dx, dz), min = ob.r + radius;
+    if (d < min && d > 0.001) { o.x = ob.x + dx / d * min; o.z = ob.z + dz / d * min; }
   }
-  if (mx || my) { frog.faceX = mx; frog.faceY = my; }
+  const r = Math.hypot(o.x, o.z);
+  if (r > BOUND) { o.x *= BOUND / r; o.z *= BOUND / r; }
+}
 
-  if (frog.air > 0) {
-    frog.air -= dt;
-    frog.x += frog.vx * dt; frog.y += frog.vy * dt;
-  } else {
-    const len = Math.hypot(mx, my) || 1;
-    frog.x += mx / len * 220 * dt; frog.y += my / len * 220 * dt;
-    if (mx || my) frog.hop += dt * 12;
+function moveToward(e, tx, tz, speed, dt) {
+  const dx = tx - e.x, dz = tz - e.z, d = Math.hypot(dx, dz);
+  if (d < 0.05) return d;
+  const s = Math.min(d, speed * dt);
+  e.x += dx / d * s; e.z += dz / d * s;
+  e.dir = lerpAngle(e.dir, Math.atan2(dx, dz), Math.min(1, dt * 8));
+  return d;
+}
+
+function updateFrog(dt) {
+  let ix = 0, iz = 0;
+  if (keys.KeyA || keys.ArrowLeft) ix--;
+  if (keys.KeyD || keys.ArrowRight) ix++;
+  if (keys.KeyW || keys.ArrowUp) iz++;
+  if (keys.KeyS || keys.ArrowDown) iz--;
+  if (joyId !== null) { ix = joyX; iz = -joyY; }
+  const il = Math.hypot(ix, iz);
+  if (il > 1) { ix /= il; iz /= il; }
+
+  // Camera-relative direction
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+  const mx = fx * iz + rx * ix, mz = fz * iz + rz * ix;
+  const moving = Math.hypot(mx, mz) > 0.1;
+
+  const speed = (frog.swimming ? 5 : 8.5) * (frog.grounded ? 1 : 1.35);
+  frog.x += (mx * speed + frog.kx) * dt;
+  frog.z += (mz * speed + frog.kz) * dt;
+  frog.kx *= Math.exp(-dt * 5); frog.kz *= Math.exp(-dt * 5);
+  if (moving) frog.dir = lerpAngle(frog.dir, Math.atan2(mx, mz), Math.min(1, dt * 12));
+  pushOut(frog, 0.6);
+
+  if (jumpQueued && frog.grounded) { frog.vy = 10; frog.grounded = false; }
+  jumpQueued = false;
+
+  const g = groundAt(frog.x, frog.z);
+  frog.swimming = height(frog.x, frog.z) < WATER - 0.35;
+  frog.vy -= 26 * dt;
+  frog.y += frog.vy * dt;
+  if (frog.y <= g) { frog.y = g; frog.vy = 0; frog.grounded = true; }
+
+  frog.hidden = frog.grounded && !frog.swimming && grassPatches.some(p => Math.hypot(frog.x - p.x, frog.z - p.z) < p.r);
+  frog.invuln = Math.max(0, frog.invuln - dt);
+
+  // Hop animation
+  let bob = 0, squash = 1;
+  if (frog.grounded && moving && !frog.swimming) {
+    frog.hop += dt * 11;
+    bob = Math.abs(Math.sin(frog.hop)) * 0.35;
+    squash = 1 + Math.sin(frog.hop * 2) * 0.08;
+  } else if (!frog.grounded) squash = 1.12;
+  frogMesh.position.set(frog.x, frog.y + bob - (frog.swimming ? 0.15 : 0), frog.z);
+  frogMesh.rotation.y = frog.dir;
+  frogMesh.scale.set(1 / squash, squash, 1);
+  frogMesh.visible = frog.invuln <= 0 || Math.floor(frog.invuln * 12) % 2 === 0;
+
+  // Belly
+  frog.belly -= dt * (2.6 + time / 150);
+  if (frog.belly <= 0) { frog.belly = 50; frog.invuln = 0; hurt(null); }
+}
+
+function spotted(e, d) {
+  e.state = 'alert'; e.t = 0.6; e.alert.visible = true;
+  toast(`A wild ${e.name} spotted you!`);
+}
+
+const difficulty = () => 1 + Math.min(time / 150, 0.6);
+
+function updateSnake(e, dt) {
+  const d = Math.hypot(frog.x - e.x, frog.z - e.z);
+  const sight = e.sight * (frog.hidden ? 0.35 : 1);
+  e.t -= dt;
+  if (e.state === 'wander') {
+    if (moveToward(e, e.tx, e.tz, 2.5, dt) < 0.5 || e.t < 0) {
+      const p = randomLand(WATER - 0.5, 99, e.x, e.z, 15, 0);
+      e.tx = p.x; e.tz = p.z; e.t = rand(3, 6);
+    }
+    if (d < sight && running) spotted(e, d);
+  } else if (e.state === 'alert') {
+    e.dir = lerpAngle(e.dir, Math.atan2(frog.x - e.x, frog.z - e.z), dt * 10);
+    if (e.t <= 0) { e.state = 'chase'; e.alert.visible = false; }
+  } else if (e.state === 'chase') {
+    moveToward(e, frog.x, frog.z, 6.8 * difficulty(), dt);
+    if (d < 1.3 && frog.grounded) { hurt(e); e.state = 'retreat'; e.t = 3; }
+    else if (d > sight * 2 + 8 || (frog.hidden && d > 6)) { e.state = 'wander'; e.t = 0; }
+  } else if (e.state === 'retreat') {
+    moveToward(e, e.x * 2 - frog.x, e.z * 2 - frog.z, 4, dt);
+    if (e.t <= 0) { e.state = 'wander'; e.t = 0; }
   }
-  frog.x = Math.max(frog.r, Math.min(W - frog.r, frog.x));
-  frog.y = Math.max(frog.r, Math.min(H - frog.r, frog.y));
-  frog.dir = Math.atan2(frog.faceY, frog.faceX);
+  pushOut(e, 0.4);
 
-  // Hunger
-  frog.belly -= dt * (5 + time / 40);
-  if (frog.belly <= 0) { frog.belly = 60; frog.hurt = 0; hurt(); }
+  const last = e.trail[0];
+  if (Math.hypot(e.x - last.x, e.z - last.z) > 0.18) { e.trail.unshift({ x: e.x, z: e.z }); e.trail.length = 40; }
+  const wiggle = Math.sin(performance.now() / 120) * 0.25;
+  e.head.position.set(e.x, Math.max(height(e.x, e.z), WATER - 0.1) + 0.25, e.z);
+  e.head.rotation.y = e.dir + wiggle * 0.5;
+  e.tongue.visible = Math.sin(performance.now() / 200 + e.x) > 0.3;
+  e.segs.forEach((s, i) => {
+    const p = e.trail[Math.min(39, (i + 1) * 2)];
+    const side = Math.sin(performance.now() / 150 - i * 0.6) * 0.15;
+    s.position.set(p.x + Math.cos(e.dir) * side, Math.max(height(p.x, p.z), WATER - 0.1) + 0.22, p.z - Math.sin(e.dir) * side);
+  });
+}
 
-  // Flies
-  flyTimer -= dt;
-  if (flyTimer <= 0 && flies.length < 8) { spawnFly(); flyTimer = 1.2; }
+function updateHeron(e, dt) {
+  const d = Math.hypot(frog.x - e.x, frog.z - e.z);
+  const sight = e.sight * (frog.hidden ? 0.35 : 1);
+  e.t -= dt;
+  let walking = false, neckX = 0, lean = 0;
+  if (e.state === 'wander') {
+    walking = moveToward(e, e.tx, e.tz, 2, dt) > 0.5;
+    if (!walking && e.t < 0) {
+      const p = randomLand(WATER - 1, WATER + 2, e.homeX, e.homeZ, 18, 0);
+      e.tx = p.x; e.tz = p.z; e.t = rand(2, 5);
+    }
+    if (d < sight && running) spotted(e, d);
+  } else if (e.state === 'alert') {
+    e.dir = lerpAngle(e.dir, Math.atan2(frog.x - e.x, frog.z - e.z), dt * 10);
+    if (e.t <= 0) { e.state = 'chase'; e.alert.visible = false; }
+  } else if (e.state === 'chase') {
+    walking = true;
+    moveToward(e, frog.x, frog.z, 5.8 * difficulty(), dt);
+    if (d < 3.3) { e.state = 'windup'; e.t = 0.45; }
+    else if (d > sight * 2 + 8 || (frog.hidden && d > 6)) { e.state = 'wander'; e.t = 0; }
+  } else if (e.state === 'windup') {
+    e.dir = lerpAngle(e.dir, Math.atan2(frog.x - e.x, frog.z - e.z), dt * 6);
+    neckX = -0.5; lean = -0.1;
+    if (e.t <= 0) {
+      e.state = 'stab'; e.t = 0.35;
+      const tipX = e.x + Math.sin(e.dir) * 2.9, tipZ = e.z + Math.cos(e.dir) * 2.9;
+      if (Math.hypot(frog.x - tipX, frog.z - tipZ) < 1.9 && frog.grounded) hurt(e);
+    }
+  } else if (e.state === 'stab') {
+    neckX = 1.9; lean = 0.6;
+    if (e.t <= 0) { e.state = 'rest'; e.t = 1.2; }
+  } else if (e.state === 'rest') {
+    if (e.t <= 0) e.state = d < sight * 1.5 ? 'chase' : 'wander';
+  }
+  pushOut(e, 0.6);
+  e.neck.rotation.x += (neckX - e.neck.rotation.x) * Math.min(1, dt * (e.state === 'stab' ? 25 : 8));
+  e.upper.rotation.x += (lean - e.upper.rotation.x) * Math.min(1, dt * 10);
+  if (walking) e.walk += dt * 9;
+  const step = Math.sin(e.walk) * 0.35;
+  e.g.children.forEach(c => { if (c.userData.side) c.rotation.x = step * c.userData.side; });
+  e.g.position.set(e.x, Math.max(height(e.x, e.z), WATER - 1.1) + Math.abs(step) * 0.1, e.z);
+  e.g.rotation.y = e.dir;
+}
+
+const tmpV = new THREE.Vector3();
+function updateHawk(e, dt) {
+  e.t -= dt; e.cd -= dt;
+  let flap = Math.sin(performance.now() / 160) * 0.35;
+  let nx, ny, nz;
+  if (e.state === 'circle') {
+    // Drift the circle toward the frog
+    const dx = frog.x - e.cx, dz = frog.z - e.cz, d = Math.hypot(dx, dz);
+    if (d > 5) { e.cx += dx / d * 3 * dt; e.cz += dz / d * 3 * dt; }
+    e.a += dt * 0.5;
+    nx = e.cx + Math.cos(e.a) * 14; nz = e.cz + Math.sin(e.a) * 14;
+    ny = Math.max(groundAt(nx, nz), 0) + 26;
+    flap *= 0.4;
+    const fd = Math.hypot(frog.x - nx, frog.z - nz);
+    if (running && e.cd <= 0 && fd < e.sight * (frog.hidden ? 0.4 : 1)) {
+      e.state = 'mark'; e.t = 1.5;
+      e.tx = frog.x; e.tz = frog.z; e.ty = groundAt(frog.x, frog.z);
+      e.ring.visible = true;
+      toast('A hawk is diving! Get out of the red circle!');
+    }
+  } else if (e.state === 'mark') {
+    e.a += dt * 0.5;
+    nx = e.cx + Math.cos(e.a) * 14; nz = e.cz + Math.sin(e.a) * 14;
+    ny = Math.max(groundAt(nx, nz), 0) + 26;
+    if (e.t <= 0) { e.state = 'dive'; e.sx = e.x; e.sy = e.y; e.sz = e.z; e.t = 0; e.dur = Math.hypot(e.tx - e.x, e.ty - e.y, e.tz - e.z) / 38; }
+  } else if (e.state === 'dive') {
+    e.t += dt * 2; // counts up (offset the global decrement)
+    const k = Math.min(1, e.t / e.dur);
+    nx = e.sx + (e.tx - e.sx) * k; nz = e.sz + (e.tz - e.sz) * k; ny = e.sy + (e.ty + 1 - e.sy) * k * k;
+    flap = -0.6;
+    if (k >= 1) {
+      if (Math.hypot(frog.x - e.tx, frog.z - e.tz) < 3) hurt(e);
+      e.state = 'climb'; e.t = 1.8; e.ring.visible = false;
+      e.cx = e.tx; e.cz = e.tz; e.a = Math.atan2(e.z - e.cz, e.x - e.cx);
+    }
+  } else if (e.state === 'climb') {
+    const k = 1 - Math.max(0, e.t) / 1.8;
+    e.a += dt * 0.5;
+    nx = e.x + (e.cx + Math.cos(e.a) * 14 - e.x) * dt * 1.5;
+    nz = e.z + (e.cz + Math.sin(e.a) * 14 - e.z) * dt * 1.5;
+    ny = e.y + (Math.max(groundAt(nx, nz), 0) + 26 - e.y) * dt * 1.5 * (0.3 + k);
+    flap *= 1.6;
+    if (e.t <= 0) { e.state = 'circle'; e.cd = rand(5, 8) / difficulty(); }
+  }
+  e.g.lookAt(tmpV.set(nx + (nx - e.x) * 10, ny + (ny - e.y) * 10, nz + (nz - e.z) * 10));
+  e.x = nx; e.y = ny; e.z = nz;
+  e.g.position.set(nx, ny, nz);
+  for (const w of e.wings) w.pivot.rotation.z = flap * w.s;
+  if (e.ring.visible) {
+    const pulse = e.state === 'mark' ? 1 + Math.max(0, e.t) * 0.3 : 1;
+    e.ring.position.set(e.tx, e.ty + 0.15, e.tz);
+    e.ring.scale.setScalar(pulse);
+    e.ring.material.opacity = 0.55 + Math.sin(performance.now() / 70) * 0.35;
+  }
+}
+
+function updateFlies(dt) {
   for (const f of flies) {
     f.t += dt;
-    f.x += Math.cos(f.t * 3) * 40 * dt; f.y += Math.sin(f.t * 4.3) * 40 * dt;
-  }
-  flies = flies.filter(f => {
-    if (Math.hypot(f.x - frog.x, f.y - frog.y) < frog.r + 22) {
-      frog.belly = Math.min(100, frog.belly + 22); score += 25;
-      puff(f.x, f.y, '#fff7a8', 6);
-      return false;
+    f.g.position.set(f.ax + Math.sin(f.t * 1.3) * 1.5, f.base + Math.sin(f.t * 2.7) * 0.3, f.az + Math.cos(f.t * 1.1) * 1.5);
+    if (running && frog.y !== undefined) {
+      const dx = f.g.position.x - frog.x, dy = f.g.position.y - (frog.y + 0.6), dz = f.g.position.z - frog.z;
+      if (Math.hypot(dx, dy, dz) < 1.8) {
+        frog.belly = Math.min(100, frog.belly + 25);
+        fliesEaten++; score += 50;
+        placeFly(f, true);
+      }
     }
-    return true;
-  });
+  }
+}
 
-  // Enemies
-  spawnTimer -= dt;
-  if (spawnTimer <= 0) { spawnEnemy(); spawnTimer = Math.max(0.6, 2.6 - time / 30); }
+function updateCamera(dt) {
+  const tx = frog.x, ty = frog.y + 1.2, tz = frog.z;
+  let cx = tx + Math.sin(yaw) * Math.cos(pitch) * camDist;
+  let cz = tz + Math.cos(yaw) * Math.cos(pitch) * camDist;
+  let cy = ty + Math.sin(pitch) * camDist;
+  cy = Math.max(cy, groundAt(cx, cz) + 0.8);
+  camera.position.lerp(tmpV.set(cx, cy, cz), Math.min(1, dt * 10));
+  camera.lookAt(tx, ty, tz);
+  sun.position.set(frog.x + 30, frog.y + 60, frog.z + 20);
+  sun.target.position.set(frog.x, frog.y, frog.z);
+}
 
+function drawMinimap() {
+  const S = 300, R = S / 2, range = 60, k = R / range;
+  mini.save();
+  mini.clearRect(0, 0, S, S);
+  mini.beginPath(); mini.arc(R, R, R, 0, Math.PI * 2); mini.clip();
+  mini.fillStyle = '#6cc04a'; mini.fillRect(0, 0, S, S);
+  const fx = -Math.sin(yaw), fz = -Math.cos(yaw), rx = Math.cos(yaw), rz = -Math.sin(yaw);
+  const toMap = (x, z) => {
+    const dx = x - frog.x, dz = z - frog.z;
+    return [R + (dx * rx + dz * rz) * k, R - (dx * fx + dz * fz) * k];
+  };
+  // Water hint: sample a coarse grid
+  mini.fillStyle = '#3fb0e8';
+  for (let gx = -range; gx <= range; gx += 4) for (let gz = -range; gz <= range; gz += 4) {
+    if (height(frog.x + gx, frog.z + gz) < WATER) { const [px, py] = toMap(frog.x + gx, frog.z + gz); mini.fillRect(px - 6, py - 6, 12, 12); }
+  }
+  mini.fillStyle = '#2c7a24';
+  for (const p of grassPatches) { const [px, py] = toMap(p.x, p.z); mini.beginPath(); mini.arc(px, py, p.r * k, 0, 7); mini.fill(); }
+  mini.fillStyle = '#ffe14a';
+  for (const f of flies) { const [px, py] = toMap(f.g.position.x, f.g.position.z); mini.beginPath(); mini.arc(px, py, 5, 0, 7); mini.fill(); }
+  const colors = { snake: '#e8a020', heron: '#ffffff', hawk: '#7a3a10' };
   for (const e of enemies) {
-    if (e.type === 'snake') {
-      e.life -= dt; e.a += dt * 8;
-      const tx = e.life > 0 ? frog.x : (e.x < W / 2 ? -200 : W + 200);
-      const ty = e.life > 0 ? frog.y : e.y;
-      const ang = Math.atan2(ty - e.y, tx - e.x);
-      e.x += Math.cos(ang) * e.speed * dt; e.y += Math.sin(ang) * e.speed * dt;
-      e.dir = ang;
-      e.trail.unshift({ x: e.x + Math.cos(ang + 1.57) * Math.sin(e.a) * 6, y: e.y + Math.sin(ang + 1.57) * Math.sin(e.a) * 6 });
-      if (e.trail.length > 22) e.trail.pop();
-      if (Math.hypot(e.x - frog.x, e.y - frog.y) < frog.r + 12) hurt();
-      if (e.life < -6) e.dead = true;
-    } else if (e.type === 'heron') {
-      e.t += dt;
-      if (!e.struck && e.t >= e.warn) {
-        e.struck = true; shake = 0.15;
-        puff(e.x, e.y, '#d8e6f0', 10);
-        if (Math.hypot(e.x - frog.x, e.y - frog.y) < 45 + frog.r) hurt();
-      }
-      if (e.t > e.warn + 0.6) e.dead = true;
-    } else if (e.type === 'hawk') {
-      e.t += dt;
-      if (e.t > e.warn) {
-        e.x += Math.cos(e.ang) * e.speed * dt; e.y += Math.sin(e.ang) * e.speed * dt;
-        if (Math.hypot(e.x - frog.x, e.y - frog.y) < frog.r + 22) hurt();
-        if (e.x < -300 || e.x > W + 300 || e.y < -300 || e.y > H + 300) e.dead = true;
-      }
-    }
+    const [px, py] = toMap(e.x, e.z);
+    mini.fillStyle = colors[e.type];
+    mini.strokeStyle = e.state === 'chase' || e.state === 'mark' || e.state === 'dive' ? '#ff0000' : '#000';
+    mini.lineWidth = 3;
+    mini.beginPath(); mini.arc(px, py, 9, 0, 7); mini.fill(); mini.stroke();
   }
-  enemies = enemies.filter(e => !e.dead);
-
-  for (const p of particles) { p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt; }
-  particles = particles.filter(p => p.life > 0);
+  // Frog arrow
+  const fa = frog.dir - Math.atan2(fx, fz);
+  mini.translate(R, R); mini.rotate(-fa + Math.PI);
+  mini.fillStyle = '#5cc93a'; mini.strokeStyle = '#fff'; mini.lineWidth = 4;
+  mini.beginPath(); mini.moveTo(0, 16); mini.lineTo(11, -10); mini.lineTo(-11, -10); mini.closePath(); mini.fill(); mini.stroke();
+  mini.restore();
 }
 
-// ---------- Drawing ----------
-function drawBackground() {
-  const g = ctx.createRadialGradient(W / 2, H / 2, 50, W / 2, H / 2, Math.max(W, H));
-  g.addColorStop(0, '#3d7a5c'); g.addColorStop(1, '#1e4a3a');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  for (const l of lilies) {
-    ctx.fillStyle = '#4f9a3e';
-    ctx.beginPath();
-    ctx.moveTo(l.x, l.y);
-    ctx.arc(l.x, l.y, l.r, l.a, l.a + 5.7);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#3c7d2e'; ctx.lineWidth = 2; ctx.stroke();
-  }
+function updateHUD() {
+  ui.hearts.textContent = '♥'.repeat(Math.max(0, frog.hearts)) + '♡'.repeat(Math.max(0, 3 - frog.hearts));
+  ui.belly.style.width = Math.max(0, frog.belly) + '%';
+  ui.belly.style.background = frog.belly < 30 ? 'linear-gradient(90deg,#ff3a2a,#ff8a3d)' : '';
+  ui.hidden.classList.toggle('hidden', !frog.hidden);
+  ui.score.textContent = Math.floor(score);
+  ui.time.textContent = `${time.toFixed(1)}s · best ${best}`;
 }
 
-function drawFrog() {
-  const lift = frog.air > 0 ? Math.sin((frog.air / 0.55) * Math.PI) * 25 : Math.abs(Math.sin(frog.hop)) * 3;
-  const scale = 1 + lift / 60;
-  // Shadow
-  ctx.fillStyle = 'rgba(0,0,0,0.3)';
-  ctx.beginPath(); ctx.ellipse(frog.x, frog.y + 6, frog.r, frog.r * 0.6, 0, 0, 6.28); ctx.fill();
-  if (frog.hurt > 0 && Math.floor(frog.hurt * 10) % 2 === 0) return;
-
-  ctx.save();
-  ctx.translate(frog.x, frog.y - lift);
-  ctx.rotate(frog.dir + Math.PI / 2);
-  ctx.scale(scale, scale);
-  // Back legs
-  ctx.fillStyle = '#4caf2e';
-  ctx.beginPath(); ctx.ellipse(-16, 10, 8, 13, -0.5, 0, 6.28); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(16, 10, 8, 13, 0.5, 0, 6.28); ctx.fill();
-  // Front legs
-  ctx.beginPath(); ctx.ellipse(-13, -8, 5, 8, 0.4, 0, 6.28); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(13, -8, 5, 8, -0.4, 0, 6.28); ctx.fill();
-  // Body
-  ctx.fillStyle = '#6fd13f';
-  ctx.beginPath(); ctx.ellipse(0, 0, 16, 19, 0, 0, 6.28); ctx.fill();
-  ctx.fillStyle = '#9be35a';
-  ctx.beginPath(); ctx.ellipse(0, 3, 9, 11, 0, 0, 6.28); ctx.fill();
-  // Eyes
-  for (const s of [-1, 1]) {
-    ctx.fillStyle = '#6fd13f';
-    ctx.beginPath(); ctx.arc(s * 8, -14, 7, 0, 6.28); ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.beginPath(); ctx.arc(s * 8, -15, 5, 0, 6.28); ctx.fill();
-    ctx.fillStyle = '#111';
-    ctx.beginPath(); ctx.arc(s * 8, -16, 2.5, 0, 6.28); ctx.fill();
-  }
-  ctx.restore();
-}
-
-function drawFly(f) {
-  const flap = Math.sin(f.t * 40) * 3;
-  ctx.fillStyle = 'rgba(220,240,255,0.7)';
-  ctx.beginPath(); ctx.ellipse(f.x - 4, f.y - 4, 5, 3 + flap * 0.3, -0.5, 0, 6.28); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(f.x + 4, f.y - 4, 5, 3 - flap * 0.3, 0.5, 0, 6.28); ctx.fill();
-  ctx.fillStyle = '#222';
-  ctx.beginPath(); ctx.arc(f.x, f.y, 4, 0, 6.28); ctx.fill();
-  ctx.fillStyle = '#c33';
-  ctx.beginPath(); ctx.arc(f.x + 3, f.y - 1, 1.5, 0, 6.28); ctx.fill();
-}
-
-function drawSnake(e) {
-  ctx.lineCap = 'round';
-  for (let i = e.trail.length - 1; i > 0; i--) {
-    const p = e.trail[i], q = e.trail[i - 1];
-    ctx.strokeStyle = i % 4 < 2 ? '#c9a227' : '#8a6d12';
-    ctx.lineWidth = 14 - i * 0.4;
-    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
-  }
-  ctx.save();
-  ctx.translate(e.x, e.y); ctx.rotate(e.dir);
-  ctx.fillStyle = '#a8861a';
-  ctx.beginPath(); ctx.ellipse(4, 0, 12, 9, 0, 0, 6.28); ctx.fill();
-  ctx.fillStyle = '#ff0';
-  ctx.beginPath(); ctx.arc(8, -5, 2.5, 0, 6.28); ctx.arc(8, 5, 2.5, 0, 6.28); ctx.fill();
-  if (Math.sin(e.a * 0.7) > 0) {
-    ctx.strokeStyle = '#e33'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(24, 0); ctx.lineTo(28, -3); ctx.moveTo(24, 0); ctx.lineTo(28, 3); ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function drawHeron(e) {
-  const k = Math.min(1, e.t / e.warn);
-  if (!e.struck) {
-    ctx.fillStyle = `rgba(0,0,0,${0.15 + k * 0.35})`;
-    ctx.beginPath(); ctx.ellipse(e.x, e.y, 45 * (0.4 + k * 0.6), 30 * (0.4 + k * 0.6), 0, 0, 6.28); ctx.fill();
-    ctx.strokeStyle = `rgba(255,80,80,${k})`; ctx.lineWidth = 3;
-    ctx.beginPath(); ctx.arc(e.x, e.y, 45 + frog.r, 0, 6.28 * k); ctx.stroke();
-  } else {
-    // Beak stabbing down
-    const fade = 1 - (e.t - e.warn) / 0.6;
-    ctx.globalAlpha = Math.max(0, fade);
-    ctx.fillStyle = '#d8e6f0';
-    ctx.beginPath(); ctx.ellipse(e.x, e.y - 30, 26, 18, 0, 0, 6.28); ctx.fill();
-    ctx.fillStyle = '#f2a33a';
-    ctx.beginPath(); ctx.moveTo(e.x - 6, e.y - 20); ctx.lineTo(e.x + 6, e.y - 20); ctx.lineTo(e.x, e.y + 10); ctx.fill();
-    ctx.fillStyle = '#111';
-    ctx.beginPath(); ctx.arc(e.x - 8, e.y - 34, 3, 0, 6.28); ctx.arc(e.x + 8, e.y - 34, 3, 0, 6.28); ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-}
-
-function drawHawk(e) {
-  if (e.t <= e.warn) {
-    // Warning line along the dive path
-    const flash = Math.floor(e.t * 8) % 2 === 0;
-    ctx.strokeStyle = flash ? 'rgba(255,60,60,0.7)' : 'rgba(255,200,60,0.5)';
-    ctx.lineWidth = 6; ctx.setLineDash([20, 15]);
-    ctx.beginPath(); ctx.moveTo(e.x, e.y);
-    ctx.lineTo(e.x + Math.cos(e.ang) * 3000, e.y + Math.sin(e.ang) * 3000); ctx.stroke();
-    ctx.setLineDash([]);
-    return;
-  }
-  ctx.save();
-  ctx.translate(e.x, e.y); ctx.rotate(e.ang);
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.beginPath(); ctx.ellipse(-10, 30, 30, 50, 0, 0, 6.28); ctx.fill();
-  ctx.fillStyle = '#7a4a26';
-  ctx.beginPath(); ctx.moveTo(25, 0); ctx.lineTo(-10, -50); ctx.lineTo(-20, 0); ctx.lineTo(-10, 50); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#a0683a';
-  ctx.beginPath(); ctx.ellipse(0, 0, 24, 10, 0, 0, 6.28); ctx.fill();
-  ctx.fillStyle = '#f2c23a';
-  ctx.beginPath(); ctx.moveTo(24, -4); ctx.lineTo(34, 0); ctx.lineTo(24, 4); ctx.fill();
-  ctx.restore();
-}
-
-function drawHUD() {
-  ctx.font = 'bold 28px Trebuchet MS';
-  ctx.textBaseline = 'top';
-  ctx.fillStyle = '#ff5a6e';
-  ctx.fillText('♥'.repeat(Math.max(0, frog.hearts)) + '♡'.repeat(Math.max(0, 3 - frog.hearts)), 16, 14);
-  // Belly bar
-  ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(16, 52, 160, 14);
-  ctx.fillStyle = frog.belly < 30 ? '#ff7b3a' : '#ffd84a';
-  ctx.fillRect(16, 52, 160 * Math.max(0, frog.belly) / 100, 14);
-  ctx.fillStyle = '#fff'; ctx.font = '12px Trebuchet MS'; ctx.fillText('BELLY', 20, 53);
-  // Leap
-  ctx.fillStyle = 'rgba(0,0,0,0.4)'; ctx.fillRect(16, 72, 160, 8);
-  ctx.fillStyle = '#7fd4ff'; ctx.fillRect(16, 72, 160 * (1 - frog.leapCd / 1.4), 8);
-
-  ctx.textAlign = 'right'; ctx.fillStyle = '#fff'; ctx.font = 'bold 28px Trebuchet MS';
-  ctx.fillText(Math.floor(score), W - 16, 14);
-  ctx.font = '16px Trebuchet MS';
-  ctx.fillText(`${time.toFixed(1)}s  ·  best ${best}`, W - 16, 48);
-  ctx.textAlign = 'left';
-}
-
-function draw() {
-  ctx.save();
-  if (shake > 0) ctx.translate((Math.random() - 0.5) * 12, (Math.random() - 0.5) * 12);
-  drawBackground();
-  for (const e of enemies) if (e.type === 'heron' && !e.struck) drawHeron(e);
-  for (const f of flies) drawFly(f);
-  for (const e of enemies) if (e.type === 'snake') drawSnake(e);
-  drawFrog();
-  for (const e of enemies) if (e.type === 'heron' && e.struck) drawHeron(e);
-  for (const e of enemies) if (e.type === 'hawk') drawHawk(e);
-  for (const p of particles) {
-    ctx.globalAlpha = p.life * 2; ctx.fillStyle = p.color;
-    ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, 6.28); ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-  ctx.restore();
-  if (frog) drawHUD();
-}
-
+// ---------- Loop ----------
+reset();
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  if (running) update(dt);
-  draw();
+  if (running) {
+    time += dt; score += dt * 10;
+    spawnClock += dt;
+    if (spawnClock > 25 && enemies.length < 32) {
+      spawnClock = 0;
+      addEnemy(['snake', 'snake', 'heron', 'hawk'][Math.floor(Math.random() * 4)]);
+    }
+    updateFrog(dt);
+  } else {
+    yaw += dt * 0.08;
+  }
+  for (const e of enemies) {
+    if (e.type === 'snake') updateSnake(e, dt);
+    else if (e.type === 'heron') updateHeron(e, dt);
+    else updateHawk(e, dt);
+  }
+  updateFlies(dt);
+  for (const c of clouds) { c.position.x += dt * 2; if (c.position.x > 220) c.position.x = -220; }
+  updateCamera(dt);
+  if (running) { drawMinimap(); updateHUD(); }
+  if (toastTimer > 0) { toastTimer -= dt; if (toastTimer <= 0) ui.toast.style.opacity = 0; }
+  renderer.render(scene, camera);
   requestAnimationFrame(loop);
 }
-
-startBtn.onclick = () => {
-  reset();
-  running = true;
-  overlay.classList.add('hidden');
-};
-
-reset();
 requestAnimationFrame(loop);
 </script>
 </body>
